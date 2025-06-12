@@ -9,7 +9,11 @@ const registerValidation = [
   body('username')
     .trim()
     .isLength({ min: 3, max: 30 })
+<<<<<<< HEAD
     .withMessage('Le nom d\'utilisateur doit contenir entre 3 et 30 caractères'),
+=======
+    .withMessage("Le nom d'utilisateur doit contenir entre 3 et 30 caractères"),
+>>>>>>> d23bb40354e2e4e8682df7a19281dc8bdfce9b19
   body('email')
     .isEmail()
     .withMessage('Email invalide')
@@ -38,4 +42,8 @@ router.post('/refresh-token', auth, authController.refreshToken);
 router.get('/profile', auth, authController.getProfile);
 router.patch('/profile', auth, authController.updateProfile);
 
+<<<<<<< HEAD
 module.exports = router; 
+=======
+module.exports = router;
+>>>>>>> d23bb40354e2e4e8682df7a19281dc8bdfce9b19
