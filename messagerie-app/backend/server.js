@@ -90,4 +90,4 @@ process.on('unhandledRejection', (err) => {
   process.exit(1);
 });
 
-module.exports = { app, server, redis };
+module.exports = { app, server, redis }; 

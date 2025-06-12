@@ -4,8 +4,7 @@ const messageSchema = new mongoose.Schema({
   content: {
     type: String,
     required: true,
-    trim: true,
-    maxlength: 1000
+    trim: true
   },
   sender: {
     type: mongoose.Schema.Types.ObjectId,
@@ -22,63 +21,80 @@ const messageSchema = new mongoose.Schema({
     enum: ['text', 'image', 'file', 'system'],
     default: 'text'
   },
-  readBy: [{
-    user: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User'
-    },
-    readAt: {
-      type: Date,
-      default: Date.now
-    }
-  }],
-  editedAt: {
-    type: Date,
-    default: null
-  },
-  isEdited: {
-    type: Boolean,
-    default: false
-  },
   replyTo: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Message',
-    default: null
+    ref: 'Message'
+  },
+  readBy: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
+  metadata: {
+    fileName: String,
+    fileSize: Number,
+    fileType: String,
+    fileUrl: String,
+    imageUrl: String,
+    imageSize: {
+      width: Number,
+      height: Number
+    }
+  },
+  status: {
+    type: String,
+    enum: ['sent', 'delivered', 'read', 'deleted'],
+    default: 'sent'
   }
 }, {
   timestamps: true
 });
 
-// Index pour améliorer les performances
-messageSchema.index({ room: 1, createdAt: -1 });
-messageSchema.index({ sender: 1 });
-
-// Méthode pour marquer comme lu
-messageSchema.methods.markAsRead = function(userId) {
-  const alreadyRead = this.readBy.some(
-    r => r.user.toString() === userId.toString()
-  );
-
-  if (!alreadyRead) {
-    this.readBy.push({ user: userId });
+// Méthode pour marquer un message comme lu
+messageSchema.methods.markAsRead = async function(userId) {
+  if (!this.readBy.includes(userId)) {
+    this.readBy.push(userId);
+    this.status = 'read';
+    await this.save();
   }
 };
 
-// Méthode pour modifier le message
-messageSchema.methods.editMessage = function(newContent) {
-  this.content = newContent;
-  this.editedAt = Date.now();
-  this.isEdited = true;
+// Méthode pour marquer un message comme supprimé
+messageSchema.methods.markAsDeleted = async function() {
+  this.status = 'deleted';
+  this.content = 'Ce message a été supprimé';
+  await this.save();
 };
 
-// Méthode statique pour obtenir les messages d'une room
-messageSchema.statics.getMessagesForRoom = function(roomId, page = 1, limit = 50) {
-  return this.find({ room: roomId })
-    .populate('sender', 'username email')
-    .populate('replyTo')
-    .sort({ createdAt: -1 })
-    .limit(limit * 1)
-    .skip((page - 1) * limit)
-    .exec();
+// Méthode pour obtenir les informations du message pour l'API
+messageSchema.methods.toAPI = function() {
+  const message = this.toObject();
+  message.id = message._id;
+  delete message._id;
+  delete message.__v;
+  return message;
 };
-module.exports = mongoose.model('Message', messageSchema);
+
+// Index pour améliorer les performances des requêtes
+messageSchema.index({ room: 1, createdAt: -1 });
+messageSchema.index({ sender: 1 });
+messageSchema.index({ 'readBy': 1 });
+messageSchema.index({ status: 1 });
+
+// Middleware pour nettoyer les messages supprimés après un certain temps
+messageSchema.pre('save', function(next) {
+  if (this.isModified('status') && this.status === 'deleted') {
+    // Planifier la suppression complète après 30 jours
+    setTimeout(async () => {
+      try {
+        await this.deleteOne();
+      } catch (error) {
+        console.error('Erreur lors de la suppression du message:', error);
+      }
+    }, 30 * 24 * 60 * 60 * 1000);
+  }
+  next();
+});
+
+const Message = mongoose.model('Message', messageSchema);
+
+module.exports = Message;
