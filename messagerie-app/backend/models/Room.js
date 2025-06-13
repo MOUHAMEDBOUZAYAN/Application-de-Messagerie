@@ -12,7 +12,6 @@ const roomSchema = new mongoose.Schema({
   code: {
     type: String,
     required: true,
-    unique: true,
     uppercase: true
   },
   creator: {
@@ -141,7 +140,7 @@ roomSchema.methods.getOnlineParticipants = function() {
 };
 
 // Index pour améliorer les performances des requêtes
-roomSchema.index({ code: 1 });
+roomSchema.index({ code: 1 }, { unique: true });
 roomSchema.index({ creator: 1 });
 roomSchema.index({ 'participants.user': 1 });
 roomSchema.index({ lastActivity: -1 });

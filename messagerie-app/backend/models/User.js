@@ -8,14 +8,12 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true,
     trim: true,
-    unique: true,
     minlength: 3,
     maxlength: 30
   },
   email: {
     type: String,
     required: true,
-    unique: true,
     trim: true,
     lowercase: true,
     match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Email invalide']
@@ -92,8 +90,8 @@ userSchema.methods.updateOnlineStatus = async function(isOnline) {
 };
 
 // Index pour améliorer les performances des requêtes
-userSchema.index({ email: 1 });
-userSchema.index({ username: 1 });
+userSchema.index({ email: 1 }, { unique: true });
+userSchema.index({ username: 1 }, { unique: true });
 userSchema.index({ isOnline: 1 });
 userSchema.index({ lastSeen: 1 });
 
